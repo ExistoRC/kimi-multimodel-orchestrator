@@ -1,7 +1,7 @@
 {
   "$schema": "https://kimi.com/schemas/kimi.plugin.schema.json",
   "name": "kimi-multimodel-orchestrator",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "原生优先、按收益委派的多模型子代理、工程悬浮窗与路由设置页。",
   "keywords": [
     "multi-model",

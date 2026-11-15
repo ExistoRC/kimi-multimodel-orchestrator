@@ -46,7 +46,7 @@ class StatusHandler(BaseHTTPRequestHandler):
             self._json(401, {"ok": False})
             return
         if self.path == "/health":
-            self._json(200, {"ok": True, "version": "0.5.1"})
+            self._json(200, {"ok": True, "version": "0.5.2"})
         elif self.path == "/api/state":
             self._json(200, self.server.store.snapshot())
         else:

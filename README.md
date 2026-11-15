@@ -4,7 +4,7 @@
 
 Keep Kimi Code's native main agent in charge of planning and acceptance while delegating only worthwhile, well-bounded subtasks to independently routed models.
 
-> **Experimental Pre-release · v0.5.1**
+> **Experimental Pre-release · v0.5.2**
 >
 > Windows installation, routing, managed subagents, and the desktop widget have been exercised. The Linux/macOS widget remains unverified and has no compatibility support guarantee yet. Core routing does not depend on PySide6, but that does not mean core routing has been validated on those platforms.
 
@@ -63,6 +63,8 @@ Install a local checkout or a GitHub repository:
 For remote installation after publication, copy the exact repository URL from its GitHub page and pass that URL to `/plugins install`. No owner placeholder is required.
 
 The plugin is installed per user, not per project. Editing a source checkout does not update the managed copy. Reinstall/update it after source changes, then reload or restart and use a new session so newly updated prompts are actually loaded.
+
+> **Installing or reloading the plugin does not install desktop dependencies or open the widget.** For the visual panel, continue with Step 3, or run `/kimi-multimodel-orchestrator:widget` and follow the guided initialization. The guided flow asks for confirmation before downloading dependencies.
 
 ### 3. Initialize the optional widget
 
@@ -135,6 +137,16 @@ To customize routes, copy the built-in `routing.json` to `$KIMI_CODE_HOME/multim
 Modality declarations constrain routing; they do not add capabilities. Current filtering uses configured capabilities and optional verified results, not automatic real-world modality probing. Image/video routing concerns input understanding and does not by itself provide image, video, speech, or music generation tools.
 
 Auto mode's fit score is a local heuristic, not a unified benchmark. Missing evidence produces an explicit fallback rather than invented scores. `/evaluate-models` researches public model IDs, documentation, model cards, prices, and benchmarks without sending project code or task prompts.
+
+### Headless / CLI Configuration
+
+Core routing does not require PySide6 or a running widget. To manage it entirely from the command line:
+
+1. Copy `$KIMI_CODE_HOME/plugins/managed/kimi-multimodel-orchestrator/routing.json` to `$KIMI_CODE_HOME/multimodel-orchestrator.routing.json`, then edit `mode`, `models`, and `routes` in any text editor. This user file replaces the built-in routing on the next dispatch.
+2. Keep every referenced alias present in `[models]` and `[secondary_model.models]` in `config.toml`.
+3. Run `kimi doctor config` to validate the model configuration. The dispatch hook separately validates the routing JSON and its tier/modality references when a managed subagent is dispatched.
+
+To prevent background widget startup without using the settings UI, set `"auto_start": false` in `$KIMI_CODE_HOME/multimodel-orchestrator/settings.json` while preserving its other fields. A missing widget runtime never triggers an automatic dependency download.
 
 ## Widget and Settings
 

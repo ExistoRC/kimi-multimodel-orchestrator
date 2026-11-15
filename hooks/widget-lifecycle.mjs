@@ -49,14 +49,31 @@ async function exists(filename) {
   }
 }
 
-async function pythonExecutable() {
+function supportsPySide6(executable) {
+  const result = spawnSync(executable, ['-c', 'import PySide6'], { stdio: 'ignore', windowsHide: true });
+  return result.status === 0;
+}
+
+async function runtimeStatus() {
+  const running = await request();
   const venv = path.join(DATA_DIR, 'widget-venv', process.platform === 'win32' ? 'Scripts/pythonw.exe' : 'bin/python');
-  if (await exists(venv)) return venv;
+  const base = { running, platform: process.platform, platformVerified: process.platform === 'win32' };
+  if (await exists(venv)) {
+    const ready = supportsPySide6(venv);
+    return { ...base, ready: running || ready, installRequired: !running && !ready, source: ready ? 'venv' : 'none', reason: ready ? null : 'pyside6_missing', executable: ready ? venv : undefined };
+  }
   const candidates = process.platform === 'win32' ? ['pythonw', 'python', 'py'] : ['python3', 'python'];
   for (const candidate of candidates) {
-    const result = spawnSync(candidate, ['-c', 'import PySide6'], { stdio: 'ignore', windowsHide: true });
-    if (result.status === 0) return candidate;
+    if (supportsPySide6(candidate)) {
+      return { ...base, ready: true, installRequired: false, source: 'global', reason: null, executable: candidate };
+    }
   }
+  return { ...base, ready: running, installRequired: !running, source: 'none', reason: 'venv_missing', executable: undefined };
+}
+
+async function pythonExecutable() {
+  const status = await runtimeStatus();
+  if (status.executable) return status.executable;
   throw new Error('悬浮窗运行环境未安装。请先运行插件 scripts/install-widget.mjs 安装 PySide6。');
 }
 
@@ -82,8 +99,13 @@ async function start() {
 }
 
 async function main() {
-  if (!['ensure', 'show', 'hide', 'settings', 'quit'].includes(action)) {
+  if (!['ensure', 'show', 'hide', 'settings', 'quit', 'status'].includes(action)) {
     throw new Error(`未知悬浮窗操作：${action}`);
+  }
+  if (action === 'status') {
+    const { executable: _, ...status } = await runtimeStatus();
+    console.log(JSON.stringify(status));
+    return;
   }
   if (action === 'ensure') {
     try {

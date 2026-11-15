@@ -4,7 +4,7 @@
 
 保留 Kimi Code 原生主代理的策划与验收权，只把有实际收益、边界清晰的子任务委派给独立路由的模型。
 
-> **Experimental Pre-release（实验性预发布）· v0.5.1**
+> **Experimental Pre-release（实验性预发布）· v0.5.2**
 >
 > Windows 下的插件安装、模型路由、受管子代理和桌面悬浮窗已经过实际验证。Linux/macOS 悬浮窗仍未验证，暂不提供兼容支持保证。核心路由不依赖 PySide6，但这也不代表核心路由已在这些平台通过验证。
 
@@ -63,6 +63,8 @@
 正式发布后进行远程安装时，复制 GitHub 仓库页面上的实际地址并传给 `/plugins install`，无需所有者占位符。
 
 插件按用户安装，而不是按项目安装。修改源码目录不会更新受管副本；源码变更后需要重新安装/更新，再重载或重启并使用新会话，确保新提示词真正被加载。
+
+> **安装或重载插件不会自动安装桌面依赖，也不会自动弹出面板。** 需要可视化面板时，请继续执行第 3 步，或运行 `/kimi-multimodel-orchestrator:widget` 按提示初始化；引导流程会在下载安装依赖前先征得确认。
 
 ### 第 3 步：初始化可选悬浮窗
 
@@ -135,6 +137,16 @@ $KIMI_CODE_HOME/plugins/managed/kimi-multimodel-orchestrator/scripts/install-wid
 模态声明只约束路由，不会赋予模型能力。当前过滤依据为配置中的 capabilities 和可选实测结果，不是自动真实模态探测。图像/视频路由针对输入理解，本身不提供生图、生视频、语音或音乐生成工具。
 
 auto 模式的适配分是本地启发式参考值，不是统一 benchmark。资料不足时明确回退，不虚构评分。`/evaluate-models` 只研究公开模型 ID、官方文档、模型卡、价格和公开评测，不发送项目代码或任务正文。
+
+### Headless / CLI 纯命令行配置
+
+核心路由不依赖 PySide6，也不需要运行悬浮窗。可以完全通过命令行和文本编辑器管理：
+
+1. 将 `$KIMI_CODE_HOME/plugins/managed/kimi-multimodel-orchestrator/routing.json` 复制为 `$KIMI_CODE_HOME/multimodel-orchestrator.routing.json`，再用任意文本编辑器修改 `mode`、`models` 和 `routes`。该用户文件从下一次分派起完整替代内置路由。
+2. 确保所有引用的别名都存在于 `config.toml` 的 `[models]` 和 `[secondary_model.models]`。
+3. 运行 `kimi doctor config` 校验模型配置。分派 Hook 会在受管子代理启动前另行校验路由 JSON 及其等级、模态和模型引用。
+
+如果不使用设置页且希望禁止后台启动悬浮窗，可在 `$KIMI_CODE_HOME/multimodel-orchestrator/settings.json` 中设置 `"auto_start": false`，同时保留其他字段。悬浮窗运行环境缺失时绝不会自动下载依赖。
 
 ## 悬浮窗与设置页
 
