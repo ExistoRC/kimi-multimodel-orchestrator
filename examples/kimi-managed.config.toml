@@ -1,0 +1,58 @@
+# 合并示例，不要用它覆盖整个 config.toml。
+# 前提：已通过 /login 配置 managed:kimi-code 和 kimi-code/k3.1-pro。
+# 本示例只使用 Kimi 托管模型；第三方供应商请在用户配置中单独接入。
+# default_model 是主代理模型；secondary_model 只影响新派生的子代理。
+default_model = "kimi-code/k3.1-pro"
+
+[secondary_model]
+default_model = "kimi-code/k3.1-pro"
+
+[secondary_model.models]
+"kimi-code/k3.1-pro" = "原生与高难任务的主级默认回退；不确定时使用"
+worker-l1 = "L1：边界清晰、低风险的局部检索或实现"
+worker-l2 = "L2：常规模块设计、功能实现和调试"
+worker-l3 = "L3：复杂推理、核心架构和疑难问题，max 思维档位"
+worker-vision = "L1/L2 图像或视频理解，high 思维档位"
+worker-vision-deep = "L3 图像或视频理解，max 思维档位"
+
+[models.worker-l1]
+provider = "managed:kimi-code"
+model = "kimi-for-coding-highspeed"
+max_context_size = 262144
+capabilities = ["thinking", "always_thinking", "image_in", "video_in", "tool_use"]
+
+[models.worker-l2]
+provider = "managed:kimi-code"
+model = "kimi-for-coding"
+max_context_size = 262144
+capabilities = ["thinking", "always_thinking", "image_in", "video_in", "tool_use"]
+
+[models.worker-l3]
+provider = "managed:kimi-code"
+model = "k3.1-pro"
+max_context_size = 1048576
+capabilities = ["thinking", "always_thinking", "image_in", "video_in", "tool_use"]
+support_efforts = ["low", "high", "max"]
+
+[models.worker-l3.overrides]
+default_effort = "max"
+
+[models.worker-vision]
+provider = "managed:kimi-code"
+model = "k3.1-pro"
+max_context_size = 1048576
+capabilities = ["thinking", "always_thinking", "image_in", "video_in", "tool_use"]
+support_efforts = ["low", "high", "max"]
+
+[models.worker-vision.overrides]
+default_effort = "high"
+
+[models.worker-vision-deep]
+provider = "managed:kimi-code"
+model = "k3.1-pro"
+max_context_size = 1048576
+capabilities = ["thinking", "always_thinking", "image_in", "video_in", "tool_use"]
+support_efforts = ["low", "high", "max"]
+
+[models.worker-vision-deep.overrides]
+default_effort = "max"

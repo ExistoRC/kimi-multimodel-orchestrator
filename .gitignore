@@ -1,0 +1,14 @@
+.tmp/
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+.env
+.env.*
+*.bak
+*.pem
+*.key
+runtime.json
+wire.jsonl
+kimi-multimodel-orchestrator-conversation.md
