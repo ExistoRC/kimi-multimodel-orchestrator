@@ -1,0 +1,71 @@
+{
+  "contractVersion": 1,
+  "canonical": {
+    "types": "src/types.ts",
+    "schema": "src/server/schema.sql"
+  },
+  "modules": [
+    {
+      "path": "src/server/orderWorkflow.ts",
+      "owner": "agent-1",
+      "exports": {
+        "reviseOrder": "ReviseOrder",
+        "fulfillOrder": "FulfillOrder",
+        "cancelOrder": "CancelOrder"
+      },
+      "tests": ["tests/orderWorkflow.test.ts"]
+    },
+    {
+      "path": "src/server/reportService.ts",
+      "owner": "agent-2",
+      "exports": {
+        "getDailyReportScope": "GetDailyReportScope",
+        "getDailyReport": "GetDailyReport"
+      },
+      "tests": ["tests/reports.test.ts"]
+    }
+  ],
+  "routes": [
+    {
+      "method": "PUT",
+      "path": "/api/orders/:id/revise",
+      "export": "reviseOrder",
+      "httpFile": "src/server/app.ts",
+      "httpTest": "required"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/:id/fulfill",
+      "export": "fulfillOrder",
+      "httpFile": "src/server/app.ts",
+      "httpTest": "required"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/:id/cancel",
+      "export": "cancelOrder",
+      "httpFile": "src/server/app.ts",
+      "httpTest": "required"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/daily",
+      "export": "getDailyReport",
+      "httpFile": "src/server/app.ts",
+      "httpTest": "required"
+    }
+  ],
+  "security": {
+    "order": [
+      "authenticate",
+      "authorize_scope",
+      "optimistic_lock",
+      "state_transition"
+    ],
+    "forbiddenErrorFields": ["actualVersion"],
+    "reportScope": {
+      "SALES_REP": "region+creatorId",
+      "REGIONAL_MANAGER": "region"
+    }
+  }
+}

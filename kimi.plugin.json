@@ -1,0 +1,108 @@
+{
+  "$schema": "https://kimi.com/schemas/kimi.plugin.schema.json",
+  "name": "kimi-multimodel-orchestrator",
+  "version": "0.5.4",
+  "description": "原生优先、按收益委派的多模型子代理、工程悬浮窗与路由设置页。",
+  "keywords": [
+    "multi-model",
+    "subagents",
+    "orchestration",
+    "routing",
+    "multimodal",
+    "desktop-widget",
+    "settings",
+    "cost-aware"
+  ],
+  "author": "镜君 MirroRC",
+  "license": "MIT",
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "commands": "./commands/",
+  "systemPromptPath": "./SYSTEM.md",
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": "^(Agent|AgentSwarm)$",
+      "command": "node ./hooks/route-subagent.mjs",
+      "timeout": 5
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "^(Agent|AgentSwarm)$",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "SessionStart",
+      "command": "node ./hooks/widget-lifecycle.mjs --ensure",
+      "timeout": 15
+    },
+    {
+      "event": "SessionStart",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "TurnStarted",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "SubagentStart",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "SubagentStop",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "PermissionRequest",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "PermissionResult",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "TaskStarted",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "Notification",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "Stop",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "StopFailure",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "Interrupt",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    },
+    {
+      "event": "SessionEnd",
+      "command": "node ./hooks/report-status.mjs",
+      "timeout": 3
+    }
+  ],
+  "interface": {
+    "displayName": "多模型分级编排器",
+    "shortDescription": "原生优先、按收益委派、多模型路由和工程状态悬浮窗",
+    "longDescription": "小任务由主代理直接完成，只有具备并行、上下文或成本收益时才委派。原生 Agent 可独立选择低成本模型，严格模式提供分级权限与结构化交付。桌面悬浮窗展示真实任务、模型和耗时，并支持路由设置。",
+    "developerName": "镜君 MirroRC",
+    "defaultLocale": "zh-CN"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "mode": "two-tier",
+  "managedAgents": {
+    "mm-scout": "read",
+    "mm-designer": "read",
+    "mm-implementer": "write",
+    "mm-verifier": "verify"
+  },
+  "models": {
+    "kimi-code/k3.1-pro": {
+      "modalities": ["text", "image", "video"]
+    },
+    "worker-l1": {
+      "modalities": ["text"]
+    },
+    "worker-l2": {
+      "modalities": ["text"]
+    },
+    "worker-l3": {
+      "modalities": ["text"]
+    },
+    "worker-vision": {
+      "modalities": ["text", "image", "video"]
+    },
+    "worker-vision-deep": {
+      "modalities": ["text", "image", "video"]
+    }
+  },
+  "routes": {
+    "L1": {
+      "text": "worker-l1",
+      "image": "worker-vision",
+      "video": "worker-vision"
+    },
+    "L2": {
+      "text": "worker-l2",
+      "image": "worker-vision",
+      "video": "worker-vision"
+    },
+    "L3": {
+      "text": "worker-l3",
+      "image": "worker-vision-deep",
+      "video": "worker-vision-deep"
+    }
+  },
+  "autoRoutes": {
+    "L1": {
+      "text": "worker-l1",
+      "image": "worker-vision",
+      "video": "worker-vision"
+    },
+    "L2": {
+      "text": "worker-l2",
+      "image": "worker-vision",
+      "video": "worker-vision"
+    },
+    "L3": {
+      "text": "worker-l3",
+      "image": "worker-vision-deep",
+      "video": "worker-vision-deep"
+    }
+  }
+}
