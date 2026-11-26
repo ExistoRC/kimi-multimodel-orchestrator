@@ -17,13 +17,7 @@
     "worker-l2": {
       "modalities": ["text"]
     },
-    "worker-l3": {
-      "modalities": ["text"]
-    },
     "worker-vision": {
-      "modalities": ["text", "image", "video"]
-    },
-    "worker-vision-deep": {
       "modalities": ["text", "image", "video"]
     }
   },
@@ -37,11 +31,6 @@
       "text": "worker-l2",
       "image": "worker-vision",
       "video": "worker-vision"
-    },
-    "L3": {
-      "text": "worker-l3",
-      "image": "worker-vision-deep",
-      "video": "worker-vision-deep"
     }
   },
   "autoRoutes": {
@@ -54,11 +43,6 @@
       "text": "worker-l2",
       "image": "worker-vision",
       "video": "worker-vision"
-    },
-    "L3": {
-      "text": "worker-l3",
-      "image": "worker-vision-deep",
-      "video": "worker-vision-deep"
     }
   }
 }

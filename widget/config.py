@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from scripts.legacy_routing import migrate_legacy_routing
+
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 KIMI_HOME = Path(os.environ.get("KIMI_CODE_HOME") or (Path.home() / ".kimi-code"))
 DATA_DIR = KIMI_HOME / "multimodel-orchestrator"
@@ -30,7 +32,7 @@ MODE_TIERS = {
     "single": ("L1",),
     "two-tier": ("L1", "L2"),
     "modality": ("any",),
-    "auto": ("L1", "L2", "L3"),
+    "auto": ("L1", "L2"),
 }
 MODALITIES = ("text", "image", "video")
 SAVE_LOCK = threading.Lock()
@@ -39,7 +41,7 @@ SAVE_LOCK = threading.Lock()
 def routing_tiers(routing: dict[str, Any]) -> tuple[str, ...]:
     version = routing.get("version")
     if version == 1:
-        return ("L1", "L2", "L3")
+        return ("L1", "L2")
     if version != 2:
         raise ValueError("路由配置 version 必须为 1 或 2")
     mode = routing.get("mode")
@@ -96,9 +98,9 @@ def save_settings(settings: dict[str, Any]) -> None:
 
 def load_routing() -> dict[str, Any]:
     try:
-        return read_json(ROUTING_FILE)
+        return migrate_legacy_routing(read_json(ROUTING_FILE))
     except FileNotFoundError:
-        return read_json(PLUGIN_ROOT / "routing.json")
+        return migrate_legacy_routing(read_json(PLUGIN_ROOT / "routing.json"))
 
 
 def model_catalog() -> dict[str, Any]:
@@ -106,12 +108,22 @@ def model_catalog() -> dict[str, Any]:
     with config_path.open("rb") as handle:
         config = tomllib.load(handle)
     pool = list(config.get("secondary_model", {}).get("models", {}).keys())
+    try:
+        insights = read_json(KIMI_HOME / "model-insights.json").get("models", {})
+    except FileNotFoundError:
+        insights = {}
     models = {}
     for alias, entry in config.get("models", {}).items():
+        capabilities = set(entry.get("capabilities", []))
+        for capability, result in insights.get(alias, {}).get("verified", {}).items():
+            if result is False:
+                capabilities.discard(capability)
+            elif result is True:
+                capabilities.add(capability)
         models[alias] = {
             "model": entry.get("model", alias),
             "display_name": entry.get("display_name", alias),
-            "capabilities": list(entry.get("capabilities", [])),
+            "capabilities": sorted(capabilities),
         }
     return {
         "main_model": config.get("default_model", "未配置"),
@@ -156,6 +168,22 @@ def _toml_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _with_max_secondary_effort(text: str) -> str:
+    lines = text.splitlines(keepends=True)
+    secondary_header = next((index for index, line in enumerate(lines) if line.strip() == "[secondary_model]"), None)
+    if secondary_header is None:
+        return text
+    for index in range(secondary_header + 1, len(lines)):
+        stripped = lines[index].strip()
+        if stripped.startswith("["):
+            break
+        if stripped.startswith("default_effort"):
+            lines[index] = 'default_effort = "max"\n'
+            return "".join(lines)
+    lines.insert(secondary_header + 1, 'default_effort = "max"\n')
+    return "".join(lines)
+
+
 def _insert_pool_entries(text: str, aliases: list[str], catalog: dict[str, Any], current_default: str) -> str:
     entries = "".join(
         f"{_toml_string(alias)} = {_toml_string(catalog['models'][alias]['display_name'] + '（由悬浮窗加入子代理池）')}\n"
@@ -195,8 +223,6 @@ def _doctor(candidate: Path) -> None:
 
 def ensure_pool_aliases(aliases: list[str], catalog: dict[str, Any]) -> Path | None:
     missing = list(dict.fromkeys(alias for alias in aliases if alias not in catalog["pool"]))
-    if not missing:
-        return None
     config_path = KIMI_HOME / "config.toml"
     original_text = config_path.read_text(encoding="utf-8")
     original = tomllib.loads(original_text)
@@ -204,12 +230,20 @@ def ensure_pool_aliases(aliases: list[str], catalog: dict[str, Any]) -> Path | N
         if alias not in original.get("models", {}):
             raise ValueError(f"模型 {alias} 不在模型库中，未修改配置")
     current_default = original.get("secondary_model", {}).get("default_model", "")
-    updated_text = _insert_pool_entries(original_text, missing, catalog, current_default)
+    updated_text = _with_max_secondary_effort(_insert_pool_entries(original_text, missing, catalog, current_default))
+    if updated_text == original_text:
+        return None
     updated = tomllib.loads(updated_text)
     for key, value in original.items():
         if key == "secondary_model":
-            for alias, hint in value.get("models", {}).items():
-                assert updated[key]["models"][alias] == hint
+            for field, field_value in value.items():
+                if field == "default_effort":
+                    continue
+                if field == "models":
+                    for alias, hint in field_value.items():
+                        assert updated[key][field][alias] == hint
+                else:
+                    assert updated[key][field] == field_value, (key, field)
         else:
             assert updated[key] == value, key
     candidate = KIMI_HOME / "config-multimodel-new.toml"

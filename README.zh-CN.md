@@ -4,7 +4,7 @@
 
 保留 Kimi Code 原生主代理的策划与验收权，只把有实际收益、边界清晰的子任务委派给独立路由的模型。
 
-> **Experimental Pre-release（实验性预发布）· v0.5.4**
+> **Experimental Pre-release（实验性预发布）· v0.5.5**
 >
 > Windows 下的插件安装、模型路由、受管子代理和桌面悬浮窗已经过实际验证。Linux/macOS 悬浮窗仍未验证，暂不提供兼容支持保证。核心路由不依赖 PySide6，但这也不代表核心路由已在这些平台通过验证。
 
@@ -42,12 +42,12 @@
 | --- | --- |
 | `kimi-code/k3.1-pro` | 主模型及高能力模型池回退 |
 | `worker-l1` | 简单、低风险、边界清晰的文本工作 |
-| `worker-l2` | 常规实现、模块设计和调试 |
-| `worker-l3` | 使用 `max` 档位的复杂推理和困难工作 |
-| `worker-vision` | 使用 `high` 档位的 L1/L2 图像/视频输入理解 |
-| `worker-vision-deep` | 使用 `max` 档位的 L3 图像/视频输入理解 |
+| `worker-l2` | 常规至复杂实现、模块设计和调试 |
+| `worker-vision` | L1/L2 图像/视频输入理解 |
 
 内置 `routing.json` 声明的别名集合与示例 `[secondary_model.models]` 完全一致。可以按账户情况调整实际模型 ID 和推理档位，但必须保持别名引用一致。
+
+示例设置了 `[secondary_model] default_effort = "max"`。该池级设置覆盖每个新派生子代理所绑定模型的默认档位，不改变主代理的档位。不能接受 `max` 的别名不得静默降档使用，应在分派前替换为受支持的变体。
 
 未设置 `KIMI_CODE_HOME` 时，默认配置目录在 Windows 上为 `%USERPROFILE%\.kimi-code`，在 macOS/Linux 上为 `~/.kimi-code`。
 
@@ -130,11 +130,13 @@ $KIMI_CODE_HOME/plugins/managed/kimi-multimodel-orchestrator/scripts/install-wid
 | `two-tier`（默认） | L1 处理简单/低风险工作；L2 覆盖常规至复杂工作 |
 | `single` | 只使用一个执行等级，但仍分别路由文本/图像/视频 |
 | `modality` | 不区分难度，以 `any` 标记并按输入模态路由 |
-| `auto` | 使用 L1/L2/L3 分类、本地候选规则和可选公开资料 |
+| `auto` | 使用 L1/L2 分类、本地候选规则和可选公开资料 |
 
 需要自定义路由时，将内置 `routing.json` 复制为 `$KIMI_CODE_HOME/multimodel-orchestrator.routing.json`。该用户文件会完整替代内置路由，并从下一次分派生效。不要修改受管插件副本。
 
-模态声明只约束路由，不会赋予模型能力。当前过滤依据为配置中的 capabilities 和可选实测结果，不是自动真实模态探测。图像/视频路由针对输入理解，本身不提供生图、生视频、语音或音乐生成工具。
+旧 L3 路由只在内存中迁移为 L2，`worker-l3` 迁移为 `worker-l2`，`worker-vision-deep` 迁移为 `worker-vision`。新分派不提供 L3，迁移不会改写用户文件。
+
+模态声明只约束路由，不会赋予模型能力。设置页和自动路由都遵循真实测试产生的 `verified` 状态：`false` 否决能力，`true` 补充能力。公开资料评分不属于模态实测，也不会自动执行图片/视频探测。图像/视频路由针对输入理解，本身不提供生图、生视频、语音或音乐生成工具。
 
 auto 模式的适配分是本地启发式参考值，不是统一 benchmark。资料不足时明确回退，不虚构评分。`/evaluate-models` 只研究公开模型 ID、官方文档、模型卡、价格和公开评测，不发送项目代码或任务正文。
 

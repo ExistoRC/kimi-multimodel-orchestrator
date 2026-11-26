@@ -47,8 +47,8 @@ disableModelInvocation: false
 - **two-tier（默认）**：L1 表示边界清晰、低风险、容易验证的简单工作；L2 覆盖常规到复杂工作，包括跨文件功能、模块设计、疑难调试和复杂推理。特别高风险或目标不清的工作可由主代理直接完成。
 - **single**：不再区分难度，所有受管子任务使用 L1 作为统一档位，但仍分别选择 text/image/video 模型。
 - **modality**：不做难度分类，元数据中的 `tier` 使用 `any`，只根据 text/image/video 选择模型。
-- **auto（自动分配）**：使用 L1（简单、明确、低风险）、L2（中等复杂、需要常规工程判断）、L3（复杂、高风险或高推理要求）。主代理先判断任务，再调用本地候选程序。
-- **version 1 旧配置**：继续兼容 L1/L2/L3；auto 模式同样接受 L3。
+- **auto（自动分配）**：只使用 L1（简单、明确、低风险）和 L2（常规到复杂、需要较高工程判断）。主代理先判断任务，再调用本地候选程序。
+- **旧配置迁移**：读取 version 1 或含 L3 的旧路由时，只在内存中把 L3 映射为 L2，并把 `worker-l3`、`worker-vision-deep` 分别迁移为 `worker-l2`、`worker-vision`。新分派不接受 L3，用户文件不会被改写。
 
 无论哪种模式，都先判断委派是否有收益，不为小任务强行分级。同一个模型别名可以复用于多个等级和多个模态，不要求每个路由不同。
 
@@ -66,15 +66,14 @@ auto 模式的缺资料回退：
 | --- | --- | --- | --- |
 | L1 | `worker-l1` | `worker-vision` | `worker-vision` |
 | L2 | `worker-l2` | `worker-vision` | `worker-vision` |
-| L3 | `worker-l3` | `worker-vision-deep` | `worker-vision-deep` |
 
-模型的实际供应商、上下文长度和思维档位由 `[models]` 配置决定。不要修改插件受管副本来完成路由定制。需要为同一底层模型选择不同思维档位时，可注册不同模型别名；Agent 调用没有独立的 effort 参数。
+模型的实际供应商、上下文长度和思维档位由 `[models]` 配置决定。不要修改插件受管副本来完成路由定制。需要为同一底层模型选择不同思维档位时，可注册不同模型别名；Agent 调用没有独立的 effort 参数。子代理默认统一使用 `[secondary_model] default_effort = "max"`，它只覆盖新派生子代理的模型默认档位，不改变主代理；不支持 max 的别名不得使用，不能静默降档。
 
 ## 4. 自动或手动选择模型
 
 当前模式为 single、two-tier 或 modality 时，主代理按路由表直接选择模型，并设置 `selection: "auto"`。
 
-当前模式为 auto 时，主代理先根据任务确定 L1/L2/L3、模态和策略（balanced/cost/quality），再在 Bash 中运行本地候选程序：
+当前模式为 auto 时，主代理先根据任务确定 L1/L2、模态和策略（balanced/cost/quality），再在 Bash 中运行本地候选程序：
 
 ```bash
 python "${KIMI_CODE_HOME:-$HOME/.kimi-code}/plugins/managed/kimi-multimodel-orchestrator/scripts/auto_route.py" --tier L2 --modality text --strategy balanced
@@ -84,7 +83,7 @@ python "${KIMI_CODE_HOME:-$HOME/.kimi-code}/plugins/managed/kimi-multimodel-orch
 
 联网资料来自用户显式执行 `/kimi-multimodel-orchestrator:evaluate-models` 后的 `model-insights.json`。没有执行该命令时不影响回退使用。verified=false 的模态不能使用，verified=true 只能补充能力，不能越过其他约束。
 
-用户也可以明确指定模型池中的别名，例如“用 worker-l3 做这个 L1 任务”。此时设置 `selection: "manual"`，并在元数据和 `model` 参数中同时填写该别名。Hook 会检查该别名是否在路由配置中以及是否声明支持所需模态。未配置、未加入模型池或不支持所需模态的模型不能使用；主代理应说明限制，而不是静默换模型。
+用户也可以明确指定模型池中的别名，例如“用 worker-l2 做这个 L1 任务”。此时设置 `selection: "manual"`，并在元数据和 `model` 参数中同时填写该别名。Hook 会检查该别名是否在路由配置中以及是否声明支持所需模态。未配置、未加入模型池或不支持所需模态的模型不能使用；主代理应说明限制，而不是静默换模型。
 
 ## 5. 建立唯一可执行契约
 

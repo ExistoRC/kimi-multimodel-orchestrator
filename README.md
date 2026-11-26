@@ -4,7 +4,7 @@
 
 Keep Kimi Code's native main agent in charge of planning and acceptance while delegating only worthwhile, well-bounded subtasks to independently routed models.
 
-> **Experimental Pre-release · v0.5.4**
+> **Experimental Pre-release · v0.5.5**
 >
 > Windows installation, routing, managed subagents, and the desktop widget have been exercised. The Linux/macOS widget remains unverified and has no compatibility support guarantee yet. Core routing does not depend on PySide6, but that does not mean core routing has been validated on those platforms.
 
@@ -42,12 +42,12 @@ Open [`examples/kimi-managed.config.toml`](examples/kimi-managed.config.toml) an
 | --- | --- |
 | `kimi-code/k3.1-pro` | Main-model and high-capability pool fallback |
 | `worker-l1` | Simple, low-risk, bounded text work |
-| `worker-l2` | Regular implementation, module design, and debugging |
-| `worker-l3` | Complex reasoning and difficult work at `max` effort |
-| `worker-vision` | Image/video input for L1/L2 at `high` effort |
-| `worker-vision-deep` | Image/video input for L3 at `max` effort |
+| `worker-l2` | Regular through complex implementation, module design, and debugging |
+| `worker-vision` | Image/video input for L1/L2 |
 
 The built-in `routing.json` declares exactly the same alias set as the example `[secondary_model.models]` pool. You may adapt model IDs and efforts to your account, but keep alias references consistent.
+
+The example sets `[secondary_model] default_effort = "max"`. This pool-wide setting overrides the bound model's default effort for every spawned subagent without changing the main agent's effort. Aliases that cannot accept `max` must not be silently downgraded; replace them with supported variants before dispatch.
 
 If `KIMI_CODE_HOME` is unset, the default configuration directory is `%USERPROFILE%\.kimi-code` on Windows and `~/.kimi-code` on macOS/Linux.
 
@@ -130,11 +130,13 @@ Use the native coder with worker-l2 for this bounded implementation, then let th
 | `two-tier` (default) | L1 for simple/low-risk work; L2 for regular through complex work |
 | `single` | One execution tier, while text/image/video routes remain separate |
 | `modality` | No difficulty tier; route by input modality using `any` |
-| `auto` | L1/L2/L3 classification plus local candidate rules and optional public evidence |
+| `auto` | L1/L2 classification plus local candidate rules and optional public evidence |
 
 To customize routes, copy the built-in `routing.json` to `$KIMI_CODE_HOME/multimodel-orchestrator.routing.json`. This user file replaces the built-in routing as a whole and takes effect on the next dispatch. Do not edit the managed plugin copy.
 
-Modality declarations constrain routing; they do not add capabilities. Current filtering uses configured capabilities and optional verified results, not automatic real-world modality probing. Image/video routing concerns input understanding and does not by itself provide image, video, speech, or music generation tools.
+Legacy L3 routes are migrated in memory to L2, with `worker-l3` mapped to `worker-l2` and `worker-vision-deep` to `worker-vision`. New dispatches do not expose L3 and migration never rewrites user files.
+
+Modality declarations constrain routing; they do not add capabilities. Both the settings UI and auto router honor actual-test `verified` results: `false` vetoes a capability and `true` supplements it. Public research scores are not modality verification, and there is no automatic image/video probe. Image/video routing concerns input understanding and does not by itself provide image, video, speech, or music generation tools.
 
 Auto mode's fit score is a local heuristic, not a unified benchmark. Missing evidence produces an explicit fallback rather than invented scores. `/evaluate-models` researches public model IDs, documentation, model cards, prices, and benchmarks without sending project code or task prompts.
 

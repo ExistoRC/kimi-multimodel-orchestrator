@@ -8,12 +8,16 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.legacy_routing import migrate_legacy_routing
+except ModuleNotFoundError:
+    from legacy_routing import migrate_legacy_routing
+
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 KIMI_HOME = Path(os.environ.get("KIMI_CODE_HOME") or (Path.home() / ".kimi-code"))
 TIER_WEIGHTS = {
     "L1": {"quality": 0.25, "cost": 0.40, "speed": 0.20, "confidence": 0.15},
     "L2": {"quality": 0.55, "cost": 0.20, "speed": 0.10, "confidence": 0.15},
-    "L3": {"quality": 0.80, "cost": 0.05, "speed": 0.05, "confidence": 0.10},
 }
 STRATEGIES = {
     "balanced": {"quality": 1.0, "cost": 1.0, "speed": 1.0, "confidence": 1.0},
@@ -61,7 +65,7 @@ class AutoRouter:
         self.models = self.config.get("models", {})
         self.insights = read_json(KIMI_HOME / "model-insights.json", {}).get("models", {})
         override = KIMI_HOME / "multimodel-orchestrator.routing.json"
-        self.routing = read_json(override if override.exists() else PLUGIN_ROOT / "routing.json", {})
+        self.routing = migrate_legacy_routing(read_json(override if override.exists() else PLUGIN_ROOT / "routing.json", {}))
 
     def supports(self, alias: str, capability: str) -> bool:
         verified = self.insights.get(alias, {}).get("verified", {})
@@ -158,7 +162,7 @@ class AutoRouter:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tier", required=True, choices=["L1", "L2", "L3"])
+    parser.add_argument("--tier", required=True, choices=["L1", "L2"])
     parser.add_argument("--modality", required=True, choices=["text", "image", "video"])
     parser.add_argument("--strategy", default="balanced", choices=["balanced", "cost", "quality"])
     args = parser.parse_args()

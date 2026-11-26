@@ -413,7 +413,7 @@ class SettingsPage(QWidget):
         self.mode_combo = DropdownComboBox()
         for text, value in (("两级：简单 / 复杂", "two-tier"), ("单级：统一执行", "single"), ("仅按模态", "modality"), ("自动分配（资料 + 规则）", "auto")):
             self.mode_combo.addItem(text, value)
-        mode = self.routing.get("mode") if self.routing.get("version") == 2 else "two-tier"
+        mode = self.routing.get("mode") if self.routing.get("version") in {1, 2} else "two-tier"
         index = self.mode_combo.findData(mode if mode in {"two-tier", "single", "modality", "auto"} else "two-tier")
         self.mode_combo.setCurrentIndex(max(0, index))
         mode_row.addWidget(self.mode_combo, 1)
@@ -449,9 +449,9 @@ class SettingsPage(QWidget):
         if current in eligible:
             return current
         candidates = {
-            "L1": ("L1", "L2", "L3", "any"),
-            "L2": ("L2", "L3", "L1", "any"),
-            "any": ("L2", "L3", "L1"),
+            "L1": ("L1", "L2", "any"),
+            "L2": ("L2", "L1", "any"),
+            "any": ("L2", "L1"),
         }[tier]
         for candidate in candidates:
             alias = routes.get(candidate, {}).get(modality)

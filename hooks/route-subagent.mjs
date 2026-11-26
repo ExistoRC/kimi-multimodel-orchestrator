@@ -8,7 +8,7 @@ const MODE_TIERS = {
   single: ['L1'],
   'two-tier': ['L1', 'L2'],
   modality: ['any'],
-  auto: ['L1', 'L2', 'L3'],
+  auto: ['L1', 'L2'],
 };
 const MODALITIES = new Set(['text', 'image', 'video']);
 const PERMISSIONS = new Set(['read', 'write', 'verify']);
@@ -29,26 +29,51 @@ async function readJson(filename) {
   return JSON.parse(text);
 }
 
+function migrateLegacyRouting(config) {
+  const migrated = structuredClone(config);
+  const aliases = { 'worker-l3': 'worker-l2', 'worker-vision-deep': 'worker-vision' };
+  if (isRecord(migrated.models)) {
+    for (const [legacy, replacement] of Object.entries(aliases)) {
+      if (!Object.hasOwn(migrated.models, legacy)) continue;
+      if (!Object.hasOwn(migrated.models, replacement)) migrated.models[replacement] = migrated.models[legacy];
+      delete migrated.models[legacy];
+    }
+  }
+  for (const tableName of ['routes', 'autoRoutes']) {
+    const table = migrated[tableName];
+    if (!isRecord(table)) continue;
+    if (table.L3 && !table.L2) table.L2 = table.L3;
+    delete table.L3;
+    for (const routes of Object.values(table)) {
+      if (!isRecord(routes)) continue;
+      for (const [modality, alias] of Object.entries(routes)) {
+        if (alias in aliases) routes[modality] = aliases[alias];
+      }
+    }
+  }
+  return migrated;
+}
+
 async function loadRouting() {
   const home = process.env.KIMI_CODE_HOME;
   if (home) {
     const override = path.join(home, OVERRIDE_FILENAME);
     try {
-      return await readJson(override);
+      return migrateLegacyRouting(await readJson(override));
     } catch (error) {
       if (error?.code !== 'ENOENT') {
         throw new Error(`无法读取用户路由配置 ${override}：${error.message}`);
       }
     }
   }
-  return readJson(path.join(PLUGIN_ROOT, 'routing.json'));
+  return migrateLegacyRouting(await readJson(path.join(PLUGIN_ROOT, 'routing.json')));
 }
 
 function tiersFor(config) {
   if (!isRecord(config)) {
     throw new Error('路由配置必须是对象');
   }
-  if (config.version === 1) return ['L1', 'L2', 'L3'];
+  if (config.version === 1) return ['L1', 'L2'];
   if (config.version !== 2) throw new Error('路由配置的 version 必须为 1 或 2');
   const tiers = MODE_TIERS[config.mode];
   if (!tiers) throw new Error('version 2 路由的 mode 必须为 single、two-tier、modality 或 auto');
